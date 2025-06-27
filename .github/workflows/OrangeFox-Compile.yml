@@ -125,6 +125,34 @@ jobs:
         cd ${{ inputs.DEVICE_PATH }}
         echo "COMMIT_ID=$(git rev-parse HEAD)" >> $GITHUB_ENV
 
+         # ======= 关键修复步骤 =======
+    - name: Fix FOX_VERSION obsolete issue
+      run: |
+        cd ${GITHUB_WORKSPACE}/OrangeFox/fox_${{ inputs.MANIFEST_BRANCH }}/bootable/recovery
+        
+        # 检查文件是否存在
+        if [ ! -f "orangefox.mk" ]; then
+          echo "Error: orangefox.mk not found!"
+          exit 1
+        fi
+        
+        # 修复废弃的 FOX_VERSION 变量
+        if grep -q 'FOX_VERSION' orangefox.mk; then
+          echo "Replacing obsolete FOX_VERSION with FOX_MAINTAINER_PATCH_VERSION"
+          sed -i 's/^FOX_VERSION\s*:=/FOX_MAINTAINER_PATCH_VERSION :=/' orangefox.mk
+          
+          # 验证修复结果
+          if grep -q 'FOX_MAINTAINER_PATCH_VERSION' orangefox.mk; then
+            echo "Successfully updated orangefox.mk"
+          else
+            echo "Failed to update orangefox.mk!"
+            exit 1
+          fi
+        else
+          echo "FOX_VERSION not found in orangefox.mk, skipping fix"
+        fi
+    # ======= 修复结束 =======
+
     - name: Update OFR Built-in Magisk
       run: |
         git clone https://github.com/ymdzq/twrp_prebuilt ~/twrp_prebuilt
